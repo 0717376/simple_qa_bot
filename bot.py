@@ -6,12 +6,8 @@ from typing import Dict
 import sys
 import logging
 import os
-from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
-# Загрузка переменных окружения
-load_dotenv()
 
 # Настройка логирования
 logging.basicConfig(
@@ -20,10 +16,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class Config:
-    BASE_URL = os.getenv('BASE_URL')
-    API_KEY = os.getenv('API_KEY')
-    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+# Получение переменных окружения напрямую
+BASE_URL = os.getenv('BASE_URL')
+API_KEY = os.getenv('API_KEY')
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 def read_csv_context(filename: str = 'запросы-ответы.csv') -> str:
     """Читает CSV файл и форматирует его в текстовый контекст."""
@@ -85,12 +81,12 @@ async def send_api_request(request_data: Dict) -> str:
     try:
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {Config.API_KEY}'
+            'Authorization': f'Bearer {API_KEY}'
         }
         
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f"{Config.BASE_URL}/v1/chat/completions",
+                f"{BASE_URL}/v1/chat/completions",
                 headers=headers,
                 json=request_data,
                 timeout=30
@@ -160,8 +156,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 def main() -> None:
     """Запуск бота."""
     try:
+        # Проверяем наличие необходимых переменных окружения
+        if not all([TELEGRAM_TOKEN, BASE_URL, API_KEY]):
+            logger.error("Отсутствуют необходимые переменные окружения")
+            sys.exit(1)
+
         # Создаем приложение
-        application = Application.builder().token(Config.TELEGRAM_TOKEN).build()
+        application = Application.builder().token(TELEGRAM_TOKEN).build()
 
         # Добавляем обработчики
         application.add_handler(CommandHandler("start", start))
